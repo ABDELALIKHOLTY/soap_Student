@@ -1,116 +1,162 @@
-# 🎓 Web Service SOAP — Gestion des Étudiants
+# 🎓 Web Service SOAP — Student Management
 
-Service web SOAP construit avec **Spring Boot 3.2.4** et **Spring Web Services** pour gérer des étudiants : créer, consulter et lister.
-
----
-
-## 📋 Table des matières
-
-- [Technologies](#-technologies)
-- [Architecture](#-architecture)
-- [Prérequis](#️-prérequis)
-- [Installation & Lancement](#-installation--lancement)
-- [Opérations disponibles](#-opérations-disponibles)
-- [Exemples de requêtes](#-exemples-de-requêtes)
-- [Données initiales](#-données-initiales)
-- [Configuration](#-configuration)
-- [Accès au WSDL](#-accès-au-wsdl)
+Service web SOAP multi-opérations basé sur **Spring Boot 3.2.4**, **Spring Web Services** et **MySQL** pour gérer les étudiants.
 
 ---
 
-## 🛠 Technologies
+## 📋 Contenu
 
-| Technologie | Version |
-|---|---|
-| Java | 21 |
-| Spring Boot | 3.2.4 |
-| Spring Web Services | ✓ |
-| Maven | Wrapper inclus |
-| JAXB2 | 3.1.0 |
-| Base de données | MySQL |
+- [Technologie](#technologies)
+- [Structure du projet](#structure)
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Opérations SOAP](#opérations-soap)
+- [Exemples de requêtes](#exemples)
+- [Configuration](#configuration)
+- [WSDL](#wsdl)
 
 ---
 
-## 📁 Architecture
+## 🛠 Technologie
+
+| Composant | Version | Description |
+|---|---|---|
+| Java | 21 | JDK 21 |
+| Spring Boot | 3.2.4 | Framework Web |
+| Spring Web Services | 3.2.4 | Services SOAP |
+| MySQL | 8.0+ | Base de données |
+| JAXB2 Maven Plugin | 3.1.0 | Génération code SOAP |
+| HikariCP | Inclus | Pool connexion |
+| Lombok | 1.18+ | Annotations Java |
+| Maven | Wrapper | Build & package |
+
+---
+
+## 📁 Structure
 
 ```
-Web_service_SOAP-SOAP/
-├── pom.xml                           # Configuration Maven
-├── mvnw / mvnw.cmd                   # Maven Wrapper
+src/main/java/
+├── com/example/demo/
+│   ├── WebServiceApplication.java          # Point d'entrée Spring Boot
+│   ├── model/
+│   │   └── Student.java                    # Entité JPA (id, name, email)
+│   ├── repository/
+│   │   └── StudentRepository.java          # Interface JpaRepository
+│   ├── Exception/
+│   │   └── StudentException.java           # Exception SOAP personnalisée
+│   └── web/services/soap/
+│       ├── endpoint/
+│       │   └── StudentEndpoint.java        # 3 opérations SOAP
+│       └── config/
+│           └── WebServiceConfig.java       # Configuration WSDL
 │
-└── src/main/
-    ├── java/com/example/demo/
-    │   ├── WebServiceApplication.java     # Point d'entrée
-    │   ├── model/Student.java             # Entité Student
-    │   ├── repository/StudentRepository   # Accès données
-    │   ├── web/services/soap/
-    │   │   ├── StudentEndpoint.java       # Endpoint SOAP
-    │   │   └── config/WebServiceConfig    # Configuration WSDL
-    │   └── init/DataInitializer           # Chargement initial (5 étudiants)
-    │
-    ├── java/com/kholty/student/
-    │   └── (Classes JAXB générées)        # Requêtes/Réponses SOAP
-    │
-    └── resources/
-        ├── application.properties         # Propriétés app
-        └── student.xsd                    # Schéma SOAP
+├── com/kholty/student/                     # Classes JAXB générées
+│   ├── AddStudentRequest.java
+│   ├── AddStudentResponse.java
+│   ├── GetStudentRequest.java
+│   ├── GetStudentResponse.java
+│   ├── GetAllStudentsRequest.java
+│   ├── GetAllStudentsResponse.java
+│   └── StudentType.java
+│
+src/main/resources/
+├── application.properties                  # Config MySQL, port 8081
+└── student.xsd                             # Schéma SOAP (source JAXB)
 ```
 
 ---
 
 ## ⚙️ Prérequis
 
-- **Java 21** ou plus récent
-- **Maven Wrapper** inclus dans le projet
+- **Java 21+** installé
+- **Maven** (v3.6+) — Wrapper inclus dans le projet
+- **MySQL 8.0+** en local ou accessible en réseau
+
+### Vérifier les installations
+
+```bash
+java -version        # Doit afficher Java 21
+mvn -version         # Doit afficher Maven 3.6+
+mysql --version      # Doit afficher MySQL 8.0+
+```
 
 ---
 
-## 🚀 Installation & Lancement
+## 🚀 Installation
 
-### 1. Construire le projet
+### 1. Créer la base de données MySQL
+
+```sql
+CREATE DATABASE soap;
+CREATE USER 'root'@'localhost' IDENTIFIED BY 'kholty';
+GRANT ALL PRIVILEGES ON soap.* TO 'root'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### 2. Construire le projet
 
 ```bash
-# Windows
-.\mvnw.cmd clean install
-
-# macOS / Linux
+cd Web_service_SOAP-SOAP
 ./mvnw clean install
 ```
 
-### 2. Lancer l'application
+Cela génère les classes JAXB via `jaxb2-maven-plugin` à partir de `student.xsd`.
+
+### 3. Lancer l'application
 
 ```bash
-# Windows
-.\mvnw.cmd spring-boot:run
-
-# macOS / Linux
 ./mvnw spring-boot:run
 ```
 
-✓ Application disponible sur **http://localhost:8081**
-
-✓ **5 étudiants** chargés automatiquement au démarrage
-
----
-
-## 📡 Opérations disponibles
-
-Le service SOAP propose **3 opérations** principales :
-
-| Opération | Entrée | Sortie |
-|---|---|---|
-| **addStudentRequest** | name, email | Student (id, name, email) |
-| **getStudentRequest** | id | Student ou vide |
-| **getAllStudentsRequest** | — | Liste des étudiants |
+✓ Application disponible sur **http://localhost:8081**  
+✓ WSDL disponible sur **http://localhost:8081/ws/student.wsdl**  
+✓ Logs affichent les requêtes SQL (si `spring.jpa.show-sql=true`)
 
 ---
 
-## 📨 Exemples de requêtes
+## 📡 Opérations SOAP
 
-**Endpoint SOAP :** `http://localhost:8081/ws`  
-**WSDL :** `http://localhost:8081/ws/student.wsdl`
+**Endpoint :** `http://localhost:8081/ws`  
+**Namespace :** `http://kholty.com/student`
 
-### ➕ Ajouter un étudiant
+### 1. Ajouter un étudiant
+
+```
+POST /ws HTTP/1.1
+Content-Type: application/soap+xml
+
+addStudentRequest(name: String, email: String) → Student
+```
+
+### 2. Récupérer un étudiant
+
+```
+POST /ws HTTP/1.1
+Content-Type: application/soap+xml
+
+getStudentRequest(id: Long) → Student | StudentException
+```
+
+### 3. Récupérer tous les étudiants
+
+```
+POST /ws HTTP/1.1
+Content-Type: application/soap+xml
+
+getAllStudentsRequest() → List<Student> | StudentException
+```
+
+**Remarques:**
+- Pas de DataInitializer : Les données proviennent uniquement de MySQL
+- Les opérations écrivent/lisent directement dans la BD MySQL
+- HikariCP gère le pool de connexions
+- JPA Hibernate génère automatiquement les requêtes SQL
+
+---
+
+## 📨 Exemples SOAP
+
+### ➕ Ajouter étudiant
 
 **Requête :**
 ```xml
@@ -119,8 +165,8 @@ Le service SOAP propose **3 opérations** principales :
                    xmlns:tns="http://kholty.com/student">
   <SOAP-ENV:Body>
     <tns:addStudentRequest>
-      <tns:name>Jean Dupont</tns:name>
-      <tns:email>jean.dupont@example.com</tns:email>
+      <tns:name>Ahmed Kholty</tns:name>
+      <tns:email>ahmed@example.com</tns:email>
     </tns:addStudentRequest>
   </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
@@ -128,13 +174,14 @@ Le service SOAP propose **3 opérations** principales :
 
 **Réponse :**
 ```xml
+<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Body>
     <ns2:addStudentResponse xmlns:ns2="http://kholty.com/student">
       <ns2:student>
-        <ns2:id>6</ns2:id>
-        <ns2:name>Jean Dupont</ns2:name>
-        <ns2:email>jean.dupont@example.com</ns2:email>
+        <ns2:id>1</ns2:id>
+        <ns2:name>Ahmed Kholty</ns2:name>
+        <ns2:email>ahmed@example.com</ns2:email>
       </ns2:student>
     </ns2:addStudentResponse>
   </SOAP-ENV:Body>
@@ -143,7 +190,7 @@ Le service SOAP propose **3 opérations** principales :
 
 ---
 
-### 🔍 Récupérer un étudiant par ID
+### 🔍 Récupérer étudiant par ID
 
 **Requête :**
 ```xml
@@ -160,15 +207,29 @@ Le service SOAP propose **3 opérations** principales :
 
 **Réponse :**
 ```xml
+<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Body>
     <ns2:getStudentResponse xmlns:ns2="http://kholty.com/student">
       <ns2:student>
         <ns2:id>1</ns2:id>
         <ns2:name>Ahmed Kholty</ns2:name>
-        <ns2:email>ahmed.kholty@example.com</ns2:email>
+        <ns2:email>ahmed@example.com</ns2:email>
       </ns2:student>
     </ns2:getStudentResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+**Erreur (ID inexistant) :**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <SOAP-ENV:Fault>
+      <faultcode>SOAP-ENV:Server</faultcode>
+      <faultstring>student with id (999) not found!</faultstring>
+    </SOAP-ENV:Fault>
   </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
 ```
@@ -188,93 +249,147 @@ Le service SOAP propose **3 opérations** principales :
 </SOAP-ENV:Envelope>
 ```
 
-**Réponse (exemple) :**
+**Réponse :**
 ```xml
+<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Body>
     <ns2:getAllStudentsResponse xmlns:ns2="http://kholty.com/student">
       <ns2:student>
         <ns2:id>1</ns2:id>
         <ns2:name>Ahmed Kholty</ns2:name>
-        <ns2:email>ahmed.kholty@example.com</ns2:email>
+        <ns2:email>ahmed@example.com</ns2:email>
       </ns2:student>
       <ns2:student>
         <ns2:id>2</ns2:id>
-        <ns2:name>Fatima Hassan</ns2:name>
-        <ns2:email>fatima.hassan@example.com</ns2:email>
+        <ns2:name>Ali Hassan</ns2:name>
+        <ns2:email>ali@example.com</ns2:email>
       </ns2:student>
-      <!-- ... autres étudiants ... -->
     </ns2:getAllStudentsResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+**Erreur (table vide) :**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <SOAP-ENV:Fault>
+      <faultcode>SOAP-ENV:Server</faultcode>
+      <faultstring>students are not exist yet!</faultstring>
+    </SOAP-ENV:Fault>
   </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
 ```
 
 ---
 
-## 📊 Données initiales
-
-Au démarrage, **5 étudiants** sont chargés automatiquement :
-
-| ID | Nom | Email |
-|---|---|---|
-| 1 | Ahmed Kholty | ahmed.kholty@example.com |
-| 2 | Fatima Hassan | fatima.hassan@example.com |
-| 3 | Mohamed Ali | mohamed.ali@example.com |
-| 4 | Leila Mansour | leila.mansour@example.com |
-| 5 | Omar Saada | omar.saada@example.com |
-
-**Fichier :** `src/main/java/com/example/demo/init/DataInitializer.java`
-
----
-
 ## 🔧 Configuration
 
-### Modifier le port
+### application.properties
 
-Éditez `src/main/resources/application.properties` :
+Fichier : `src/main/resources/application.properties`
 
 ```properties
+# Serveur
+spring.application.name=demo
 server.port=8081
+
+# MySQL
+spring.datasource.url=jdbc:mysql://localhost:3306/soap
+spring.datasource.username=root
+spring.datasource.password=kholty
+
+# JPA / Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# HikariCP
+spring.datasource.hikari.minimumIdle=5
+spring.datasource.hikari.maximumPoolSize=20
+spring.datasource.hikari.idleTimeout=30000
+spring.datasource.hikari.maxLifetime=2000000
+spring.datasource.hikari.connectionTimeout=30000
+spring.datasource.hikari.poolName=HikariPoolBooks
 ```
 
-### Ajouter des étudiants au démarrage
+### Modifier la connexion MySQL
 
-Éditez `src/main/java/com/example/demo/init/DataInitializer.java`
+Pour utiliser une autre BD ou utilisateur, modifiez :
+
+```properties
+spring.datasource.url=jdbc:mysql://HOST:PORT/DATABASE
+spring.datasource.username=USER
+spring.datasource.password=PASSWORD
+```
+
+### Schéma & Classe Student
+
+**Modèle :** `src/main/java/com/example/demo/model/Student.java`
+
+```java
+@Entity
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String email;
+}
+```
+
+**Schéma XSD :** `src/main/resources/student.xsd`
+- Source pour la génération JAXB2
+- Définit les messages SOAP
 
 ---
 
-## 🌐 Accès au WSDL
+## 🌐 WSDL
 
 **URL :** `http://localhost:8081/ws/student.wsdl`
 
-### Utiliser avec un client SOAP
+### Tester avec un client SOAP
 
-Outils recommandés : Postman, SoapUI, Wizler
+Outils : **Postman**, **SoapUI**, **Insomnia**, **VS Code REST Client**
 
-1. Lancez l'application avec `spring-boot:run`
-2. Ouvrez votre client SOAP
-3. Cible : `http://localhost:8081/ws`
-4. Collez une requête depuis les exemples ci-dessus
-5. Envoyez
+**Étapes :**
+1. Compier l'URL du WSDL : `http://localhost:8081/ws/student.wsdl`
+2. Importer dans le client SOAP
+3. Envoyer une requête depuis les exemples ci-dessus
 
 ---
 
-## 📝 Référence rapide
+## 📚 Fichiers importants
 
-| Concept | Valeur |
+| Fichier | Rôle |
 |---|---|
-| **Endpoint** | `http://localhost:8081/ws` |
-| **WSDL** | `http://localhost:8081/ws/student.wsdl` |
-| **Namespace** | `http://kholty.com/student` |
-| **Port** | `8081` |
-| **Base données** | MySQL |
+| `src/main/java/com/example/demo/WebServiceApplication.java` | Point d'entrée Spring Boot |
+| `src/main/java/com/example/demo/web/services/soap/endpoint/StudentEndpoint.java` | 3 opérations SOAP |
+| `src/main/java/com/example/demo/model/Student.java` | Entité JPA (id, name, email) |
+| `src/main/java/com/example/demo/repository/StudentRepository.java` | Accès données MySQL |
+| `src/main/java/com/example/demo/Exception/StudentException.java` | Exception SOAP |
+| `src/main/java/com/example/demo/web/services/soap/config/WebServiceConfig.java` | Configuration WSDL |
+| `src/main/resources/student.xsd` | Schéma SOAP (source JAXB) |
+| `src/main/resources/application.properties` | Configuration BD, port, etc. |
+| `pom.xml` | Dépendances Maven |
 
 ---
 
-## 📚 Fichiers clés
+## 📝 Flux de fonctionnement
 
-- `src/main/java/com/example/demo/WebServiceApplication.java` — Point d'entrée
-- `src/main/java/com/example/demo/web/services/soap/StudentEndpoint.java` — Opérations SOAP
-- `src/main/java/com/example/demo/model/Student.java` — Modèle données
-- `src/main/resources/student.xsd` — Schéma XML
-- `src/main/java/com/example/demo/web/services/soap/config/WebServiceConfig.java` — Configuration WSDL
+```
+Client SOAP
+    ↓
+HTTP POST /ws
+    ↓
+MessageDispatcherServlet (Spring WS)
+    ↓
+StudentEndpoint (3 opérations)
+    ↓
+StudentRepository (JpaRepository)
+    ↓
+MySQL Database (table student)
+    ↓
+Réponse SOAP → Client
+```
