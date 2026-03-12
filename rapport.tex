@@ -1,0 +1,481 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{booktabs}
+
+\lstset{
+    language=Java,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\textbf,
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    backgroundcolor=\color{lightgray!20}
+}
+
+\title{\textbf{Rapport du Projet Web Service SOAP} \\ \textit{Gestion des Étudiants}}
+\author{\textbf{Développé par:} Abdel \\ \textit{Université/École}}
+\date{\today}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Web Service SOAP - Rapport}
+\lhead{Projet Étudiant}
+\cfoot{\thepage}
+
+\begin{document}
+
+% ===== PAGE DE TITRE =====
+\begin{titlepage}
+\centering
+\vspace*{\fill}
+
+{\LARGE\textbf{RAPPORT TECHNIQUE}}\\[0.5cm]
+{\Large Web Service SOAP - Gestion des Étudiants}\\[1cm]
+
+\rule{\linewidth}{2pt}\\[1cm]
+
+{\large Développé par : \textbf{Abdel}}\\[0.5cm]
+{\large Date : \textbf{\today}}\\[0.5cm]
+{\large Technologie : \textbf{Spring Boot 3.2.4 + MySQL + SOAP}}\\[2cm]
+
+\vspace*{\fill}
+
+{\large \textit{Ce rapport présente l'architecture, la conception et l'implémentation} \\ 
+\textit{d'un Web Service SOAP pour la gestion des données d'étudiants.}}
+
+\end{titlepage}
+
+\newpage
+% ===== TABLE DES MATIÈRES =====
+\tableofcontents
+\newpage
+
+% ===== CHAPITRE 1 =====
+\chapter{Introduction}
+
+\section{Contexte du Projet}
+Ce projet met en place un Web Service SOAP (Simple Object Access Protocol) pour la gestion d'étudiants. L'application utilise les technologies modernes de développement Java avec le framework Spring Boot, couplée à une base de données MySQL pour la persistance des données.
+
+\section{Objectifs}
+\begin{itemize}
+    \item Créer un service Web SOAP fonctionnel
+    \item Implémenter les opérations CRUD (Create, Read, Update, Delete)
+    \item Assurer la persistance des données en base MySQL
+    \item Fournir une architecture scalable et maintenable
+\end{itemize}
+
+\section{Spécifications Techniques}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Composant} & \textbf{Version/Valeur} \\
+\hline
+Java & 21 (LTS) \\
+Spring Boot & 3.2.4 \\
+Base de Données & MySQL 8.0+ \\
+Port d'écoute & 8081 \\
+Protocole & SOAP 1.1 \\
+Namespace & http://kholty.com/student \\
+\hline
+\end{tabular}
+\caption{Spécifications Techniques}
+\end{table}
+
+\newpage
+
+% ===== CHAPITRE 2 =====
+\chapter{Architecture et Conception}
+
+\section{Architecture Générale}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0]
+    % Client
+    \draw[fill=blue!20] (0,8) rectangle (2,9) node[midway] {\textbf{Client}};
+    \draw[->,thick] (1,8) -- (1,7);
+    
+    % SOAP Request
+    \node[text=red,font=\small] at (2.5,7.5) {SOAP Request};
+    
+    % Web Service Layer
+    \draw[fill=green!20] (0,5.5) rectangle (2,7) node[midway] {\textbf{SOAP Endpoint} \\ \texttt{/ws}};
+    \draw[->,thick] (1,5.5) -- (1,4.5);
+    
+    % Business Logic
+    \draw[fill=yellow!20] (0,3) rectangle (2,4.5) node[midway] {\textbf{Endpoint} \\ \texttt{StudentEndpoint}};
+    \draw[->,thick] (1,3) -- (1,2);
+    
+    % Repository Layer
+    \draw[fill=orange!20] (0,0.5) rectangle (2,2) node[midway] {\textbf{Repository} \\ \texttt{StudentRepository}};
+    \draw[->,thick] (2.5,1.25) -- (4,1.25);
+    
+    % Database
+    \draw[fill=red!20] (4,0.5) rectangle (6,2) node[midway] {\textbf{MySQL Database} \\ \texttt{soap.student}};
+    
+    % Response Path
+    \draw[dashed,->,thick,blue] (6,1.25) -- (5,1.25);
+    \draw[dashed,->,thick,blue] (2.5,1.25) -- (2,1.25);
+    \draw[dashed,->,thick,blue] (1,2) -- (1,3);
+    \draw[dashed,->,thick,blue] (1,4.5) -- (1,5.5);
+    \node[text=blue,font=\small] at (2.5,2.5) {SOAP Response};
+    \draw[dashed,->,thick,blue] (1,7) -- (1,8);
+    
+\end{tikzpicture}
+\caption{Architecture du Web Service SOAP}
+\end{figure}
+
+\section{Flux de Données (Request/Response)}
+
+\subsection{Cycle Complet d'une Requête}
+
+\textbf{1. Requête CLIENT SOAP:}
+\begin{lstlisting}
+POST /ws HTTP/1.1
+Host: localhost:8081
+Content-Type: application/soap+xml
+
+<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+  <Body>
+    <addStudentRequest xmlns="http://kholty.com/student">
+      <name>Ali Ahmed</name>
+      <email>ali@kholty.com</email>
+    </addStudentRequest>
+  </Body>
+</Envelope>
+\end{lstlisting}
+
+\textbf{2. Traitement SERVER:}
+\begin{enumerate}
+    \item MessageDispatcherServlet reçoit la requête
+    \item PayloadRootQNameEndpointMapping mappe à StudentEndpoint
+    \item Méthode \texttt{addStudent()} est appelée
+    \item Données extraites et validées
+    \item StudentRepository.save() persiste en MySQL
+    \item BusinessLogic retourne StudentType
+\end{enumerate}
+
+\textbf{3. Réponse SERVER SOAP:}
+\begin{lstlisting}
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml
+
+<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+  <Body>
+    <addStudentResponse xmlns="http://kholty.com/student">
+      <student>
+        <id>1</id>
+        <name>Ali Ahmed</name>
+        <email>ali@kholty.com</email>
+      </student>
+    </addStudentResponse>
+  </Body>
+</Envelope>
+\end{lstlisting}
+
+\newpage
+
+% ===== CHAPITRE 3 =====
+\chapter{Implémentation Détaillée}
+
+\section{Structure du Projet}
+
+\begin{verbatim}
+Web_service_SOAP/
+├── src/main/java/
+│   └── com/example/demo/
+│       ├── WebServiceApplication.java (Point d'entrée)
+│       ├── model/
+│       │   └── Student.java (@Entity JPA)
+│       ├── repository/
+│       │   └── StudentRepository.java (JpaRepository)
+│       ├── Exception/
+        │   └── StudentException.java (@SoapFault)
+│       └── web/services/soap/
+│           ├── endpoint/
+│           │   └── StudentEndpoint.java (SOAP Operations)
+│           └── config/
+│               └── WebServiceConfig.java (Configuration)
+├── src/main/resources/
+│   ├── student.xsd (Schéma XML)
+│   └── application.properties (Configuration)
+└── pom.xml (Dépendances)
+\end{verbatim}
+
+\section{Modèle de Données}
+
+\subsection{Entité JPA - Student}
+\begin{lstlisting}
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String email;
+}
+\end{lstlisting}
+
+\subsection{Schéma XML (student.xsd)}
+Le schéma XSD définit les contrats pour :
+\begin{itemize}
+    \item \textbf{addStudentRequest/Response} ✓ Implémenté
+    \item \textbf{getStudentRequest/Response} ✓ Implémenté
+    \item \textbf{getAllStudentsRequest/Response} (Défini en XSD, À implémenter)
+\end{itemize}
+
+\section{Gestion des Exceptions}
+
+\subsection{StudentException - Exception SOAP personnalisée}
+\begin{lstlisting}
+@SoapFault(faultCode = FaultCode.CUSTOM,
+    customFaultCode = "{http://kholty.com/Student}001_not found")
+public class StudentException extends RuntimeException {
+    public StudentException(String message) {
+        super(message);
+    }
+}
+\end{lstlisting}
+
+L'annotation \texttt{@SoapFault} transforme les exceptions Java en réponses SOAP Fault standard, permettant au client de recevoir une erreur SOAP bien formée au lieu d'une exception HTTP 500.
+
+\section{Operations SOAP}
+
+\subsection{1. Add Student (CREATE)}
+\begin{lstlisting}
+@Transactional
+@PayloadRoot(namespace = namespace, localPart = "addStudentRequest")
+@ResponsePayload
+public AddStudentResponse addStudent(@RequestPayload AddStudentRequest request) {
+    Student student = new Student();
+    student.setName(request.getName());
+    student.setEmail(request.getEmail());
+    
+    Studentrepo.save(student);  // Persiste en MySQL
+    
+    // Retour
+    StudentType st = new StudentType();
+    st.setId(student.getId());
+    st.setName(student.getName());
+    st.setEmail(student.getEmail());
+    
+    AddStudentResponse response = new AddStudentResponse();
+    response.setStudent(st);
+    return response;
+}
+\end{lstlisting}
+
+\subsection{2. Get Student (READ)}
+\begin{lstlisting}
+@PayloadRoot(namespace = namespace, localPart = "getStudentRequest")
+@ResponsePayload
+public GetStudentResponse getStudentById(@RequestPayload GetStudentRequest request) 
+    throws StudentException {
+    
+    Optional<Student> student = Studentrepo.findById(request.getId());
+    Student st = new Student();
+    
+    if (student.isPresent()) {
+        st = student.get();
+    } else {
+        throw new StudentException("student with id ( " + 
+            request.getId() + " ) not found!");
+    }
+    
+    // Mapper vers StudentType
+    StudentType stf = new StudentType();
+    stf.setId(st.getId());
+    stf.setName(st.getName());
+    stf.setEmail(st.getEmail());
+    
+    GetStudentResponse response = new GetStudentResponse();
+    response.setStudent(stf);
+    return response;
+}
+\end{lstlisting}
+
+\newpagapplication.name=demo
+server.port=8081
+
+# HikariCP settings (Default connection pool)
+spring.datasource.hikari.minimumIdle=5
+spring.datasource.hikari.maximumPoolSize=20
+spring.datasource.hikari.idleTimeout=30000
+spring.datasource.hikari.maxLifetime=2000000
+spring.datasource.hikari.connectionTimeout=30000
+spring.datasource.hikari.poolName=HikariPoolBooks
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+spring.datasource.url=jdbc:mysql://${MYSQL_HOST:localhost}:3306/soap
+spring.datasource.username=root
+spring.datasource.password=kholtyySQL}
+
+\begin{lstlisting}[language=properties]
+# application.properties
+spring.datasource.url=jdbc:mysql://localhost:3306/soap
+spring.datasource.username=root
+spring.datasource.password=kholty
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+\end{lstlisting}
+
+\section{Diagramme ER - Base de Données}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+    \draw[fill=blue!20] (2,2) rectangle (5,3.5);
+    \node[text centered] at (3.5,3.2) {\textbf{STUDENT}};
+    \node[font=\small] at (2.2,2.8) {id (PK)};
+    \node[font=\small] at (2.2,2.4) {name (VARCHAR)};
+    \node[font=\small] at (2.2,2.0) {email (VARCHAR)};
+\end{tikzpicture}
+\caption{Modèle de Données MySQL}
+\end{figure}
+
+\section{Opérations CRUD en Base}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Opération} & \textbf{Méthode} & \textbf{SQL} \\
+\hline
+CREATE & \texttt{save()} & \texttt{INSERT INTO student ...} \\
+READ & \texttt{findById()} & \texttt{SELECT * FROM student WHERE id=?} \\
+UPDATE & \texttt{save()} & \texttt{UPDATE student SET ...} \\
+DELETE & \texttt{deleteById()} & \texttt{DELETE FROM student WHERE id=?} \\
+\hline
+\end{tabular}
+\caption{Opérations CRUD}
+\end{table}
+
+\section{Exemple de Cycle Complet}
+
+\begin{enumerate}
+    \item \textbf{SOAP Request reçue:} addStudentRequest avec name="Ali", email="ali@test.com"
+    \item \textbf{StudentEndpoint traite:} Crée un nouvel objet Student
+    \item \textbf{StudentRepository.save():} Exécute \texttt{INSERT INTO student (name, email) VALUES ('Ali', 'ali@test.com')}
+Ce Web Service SOAP fournit une solution fonctionnelle pour la gestion des étudiants avec :
+\begin{itemize}
+    \item ✓ Architecture en couches bien définies (Endpoint → Repository → JPA/MySQL)
+    \item ✓ Persistance MySQL fiable via HikariCP (pool 5-20 connexions)
+    \item ✓ Transactions SOAP atomiques avec \texttt{@Transactional}
+    \item ✓ Gestion d'erreurs avec \texttt{@SoapFault} personnalisée
+    \item ✓ Configuration sur port 8081 (évite les conflits)
+    \item ✓ WSDL généré automatiquement via DefaultWsdl11Definition
+    \item ✓ Deux opérations SOAP complètes : addStudent, getStudentById
+% ===== CHAPITRE 5 =====
+\chapter{Conclusion et Améliorations Futures}
+
+\section{Résumé}
+Ce Web Service SOAP fournit une solution robuste pour la gestion des étudiants avec :
+\begin{itemize}
+    \item Implémenter l'opération getAllStudents (définie en XSD mais pas encore codée)
+    \item Implémenter l'opération deleteStudent
+    \item Ajouter Spring Security pour authentification/autorisation
+    \item Ajouter des validations (format email, longueur min/max, etc.)
+    \item Implémenter des logs applicatifs structurés
+    \item Ajouter des tests unitaires JUnit 5 et intégration
+    \item ✓ Port sécurisé 8081
+\end{itemize}
+
+\section{Améliorations Recommandées}
+
+\subsection{Court Terme}
+\begin{itemize}
+    \item Ajouter Spring Security pour authentification
+    \item Implémenter les opérations getAllStudents et deleteStudent
+    \item Ajouter des validations (email format, etc.)
+    \item Implémenter des logs applicatifs
+\end{itemize}
+
+\subsection{Long Terme}
+\begin{itemize}
+    \item Migrer vers REST API (plus moderne que SOAP)
+    \item Ajouter caching (Redis)
+    \item Implémenter CI/CD (Jenkins, GitHub Actions)
+    \item Conteneuriset Outils}
+
+\subsection{Dépendances Maven}
+\begin{itemize}
+    \item \textbf{spring-boot-starter-web-services:} Support SOAP/WS et MessageDispatcherServlet
+    \item \textbf{spring-boot-starter-data-jpa:} Persistence JPA/Hibernate
+    \item \textbf{mysql-connector-java:} Driver MySQL pour connexion base de données
+    \item \textbf{lombok:} Annotations @Data, @NoArgsConstructor, @AllArgsConstructor
+    \item \textbf{jakarta.transaction:} Support @Transactional (Jakarta EE)
+\end{itemize}
+
+\subsection{Plugins Maven}
+\begin{itemize}
+    \item \textbf{jaxb2-maven-plugin:} Génération classes SOAP depuis XSD (addStudentRequest, StudentType, etc.)
+    \item \textbf{spring-boot-maven-plugin:} Build JAR exécutable et hot reload
+    \item \textbf{maven-compiler-plugin:} Compilation Java 21
+\end{itemize}
+
+\subsection{Infrastructure}
+\begin{itemize}
+    \item \textbf{HikariCP:} Pool de connexions MySQL (5-20 connexions)
+    \item \textbf{MySQL 8.0+:} Base de données avec schéma "soap" et table "student"
+    \item \textbf{Spring Boot Embedded Tomcat:} Serveur HTTP sur port 8081/WS
+    \item \textbf{spring-boot-starter-data-jpa:} Persistence
+    \item \textbf{mysql-connector-java:} Driver MySQL
+    \item \textbf{lombok:} Annotations @Data, @NoArgsConstructor
+    \item \textbf{jaxb2-maven-plugin:} Génération code depuis XSD
+\end{itemize}
+
+\vspace{2cm}
+
+\section{État Actuel du Projet}
+
+\subsection{✓ Fonctionnalités Implémentées et Testées}
+\begin{enumerate}
+    \item \textbf{Add Student (CREATE):} Crée un étudiant en base MySQL, génère ID auto-incrémenté
+    \item \textbf{Get Student (READ):} Récupère un étudiant par ID avec gestion d'erreur StudentException
+    \item \textbf{Configuration SOAP:} MessageDispatcherServlet, PayloadRootQNameEndpointMapping, génération WSDL
+    \item \textbf{Persistance MySQL:} HikariCP pool, JPA/Hibernate, auto-migration du schéma
+    \item \textbf{Port 8081:} Application démarre sans conflit, logs Tomcat vérifiés
+    \item \textbf{Gestion erreurs:} @SoapFault personnalisée pour erreurs métier (NOT_FOUND)
+\end{enumerate}
+
+\subsection{⏳ À Implémenter}
+\begin{enumerate}
+    \item \textbf{Get All Students (READ LIST):} getAllStudentsRequest/Response définis en XSD, pas encore d'endpoint
+    \item \textbf{Delete Student:} Opération non présente en XSD ni en code
+    \item \textbf{Update Student:} Opération non présente en XSD ni en code
+    \item \textbf{Spring Security:} Authentification/autorisation non yet configurée
+    \item \textbf{Validation:} Annotations @Valid, @NotNull, @Email manquantes
+    \item \textbf{Logging:} Pas de logs structurés (SLF4J/Logback)
+\end{enumerate}
+
+\subsection{Notes Techniques}
+\begin{itemize}
+    \item \textbf{Namespace SOAP:} http://kholty.com/student (doit correspondre dans @PayloadRoot)
+    \item \textbf{Annotations critiques:} \texttt{@Endpoint}, \texttt{@PayloadRoot}, \texttt{@ResponsePayload}
+    \item \textbf{Cas sensible:} localPart="addStudentRequest" (minuscule) doit matcher l'élément XSD
+    \item \textbf{Optional API:} Toujours checker \texttt{isPresent()} avant \texttt{get()}
+    \item \textbf{Transactions:} \texttt{@Transactional} sur addStudent pour atomicité
+\end{itemize}
+
+\centerline{\textit{Rapport certifié exact pour version git commit : 2026-03-12-rapport-v2}}
+
+\end{document}
