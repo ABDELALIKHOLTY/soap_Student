@@ -1,18 +1,19 @@
 # 🎓 Web Service SOAP — Gestion des Étudiants
 
-Service web SOAP développé avec **Spring Boot 3.2.4** et **Spring Web Services** permettant de gérer des étudiants (ajout, consultation, liste de tous les étudiants).
+Service web SOAP construit avec **Spring Boot 3.2.4** et **Spring Web Services** pour gérer des étudiants : créer, consulter et lister.
 
 ---
 
 ## 📋 Table des matières
 
 - [Technologies](#-technologies)
-- [Architecture du projet](#-architecture-du-projet)
-- [Prérequis](#-prérequis)
+- [Architecture](#-architecture)
+- [Prérequis](#️-prérequis)
 - [Installation & Lancement](#-installation--lancement)
-- [Services SOAP disponibles](#-services-soap-disponibles)
-- [Exemples de requêtes SOAP](#-exemples-de-requêtes-soap)
+- [Opérations disponibles](#-opérations-disponibles)
+- [Exemples de requêtes](#-exemples-de-requêtes)
 - [Données initiales](#-données-initiales)
+- [Configuration](#-configuration)
 - [Accès au WSDL](#-accès-au-wsdl)
 
 ---
@@ -21,105 +22,97 @@ Service web SOAP développé avec **Spring Boot 3.2.4** et **Spring Web Services
 
 | Technologie | Version |
 |---|---|
-| Java JDK | 21 |
+| Java | 21 |
 | Spring Boot | 3.2.4 |
-| Spring Web Services | Inclus dans starter |
-| JAXB2 Maven Plugin | 3.1.0 |
-| Lombok | Inclus |
-| Maven | Wrapper (mvnw) |
-| wsdl4j | Inclus |
-| Base de données | H2 (en mémoire) |
+| Spring Web Services | ✓ |
+| Maven | Wrapper inclus |
+| JAXB2 | 3.1.0 |
+| Base de données | MySQL |
 
 ---
 
-## 📁 Architecture du projet
+## 📁 Architecture
 
 ```
-src/main/java/com/example/demo/
-├── WebServiceApplication.java        # Point d'entrée Spring Boot
-├── init/
-│   └── DataInitializer.java          # Chargement de 5 étudiants au démarrage
-├── endpoint/
-│   └── StudentEndpoint.java          # Endpoint SOAP (traitement des requêtes)
-├── model/
-│   └── Student.java                  # Modèle métier (id, name, email)
-├── repository/
-│   └── StudentRepository.java        # Repository en mémoire
-└── soap/config/
-    └── WebServiceConfig.java         # Configuration SOAP WSDL
-
-src/main/java/com/kholty/student/
-└── (Classes générées par JAXB2)      # Requests/Responses générées du XSD
-
-src/main/resources/
-├── application.properties            # Configuration (port 8080)
-└── student.xsd                       # Schéma XML des messages SOAP
+Web_service_SOAP-SOAP/
+├── pom.xml                           # Configuration Maven
+├── mvnw / mvnw.cmd                   # Maven Wrapper
+│
+└── src/main/
+    ├── java/com/example/demo/
+    │   ├── WebServiceApplication.java     # Point d'entrée
+    │   ├── model/Student.java             # Entité Student
+    │   ├── repository/StudentRepository   # Accès données
+    │   ├── web/services/soap/
+    │   │   ├── StudentEndpoint.java       # Endpoint SOAP
+    │   │   └── config/WebServiceConfig    # Configuration WSDL
+    │   └── init/DataInitializer           # Chargement initial (5 étudiants)
+    │
+    ├── java/com/kholty/student/
+    │   └── (Classes JAXB générées)        # Requêtes/Réponses SOAP
+    │
+    └── resources/
+        ├── application.properties         # Propriétés app
+        └── student.xsd                    # Schéma SOAP
 ```
 
 ---
 
 ## ⚙️ Prérequis
 
-- **Java 21** installé
-- **Maven Wrapper** inclus dans le projet (`mvnw.cmd` pour Windows)
+- **Java 21** ou plus récent
+- **Maven Wrapper** inclus dans le projet
 
 ---
 
 ## 🚀 Installation & Lancement
 
-### 1️⃣ Cloner/Extraire le projet
-```bash
-cd Web_service_SOAP-SOAP
-```
+### 1. Construire le projet
 
-### 2️⃣ Construire le projet
 ```bash
+# Windows
 .\mvnw.cmd clean install
-```
 
-Ou sur macOS/Linux:
-```bash
+# macOS / Linux
 ./mvnw clean install
 ```
 
-### 3️⃣ Démarrer le serveur SOAP
+### 2. Lancer l'application
+
 ```bash
+# Windows
 .\mvnw.cmd spring-boot:run
+
+# macOS / Linux
+./mvnw spring-boot:run
 ```
 
-L'application démarre sur **http://localhost:8080**
+✓ Application disponible sur **http://localhost:8081**
 
-**Confirmation du démarrage:**
-```
-✓ 5 étudiants ont été chargés dans la base de données
-```
+✓ **5 étudiants** chargés automatiquement au démarrage
 
 ---
 
-## 📡 Services SOAP disponibles
+## 📡 Opérations disponibles
 
-Le service SOAP expose **3 opérations** pour la gestion des étudiants:
+Le service SOAP propose **3 opérations** principales :
 
-### 1. **addStudentRequest** — Ajouter un étudiant
-- **Entrée** : name, email
-- **Sortie** : Student (id, name, email)
-
-### 2. **getStudentRequest** — Récupérer un étudiant par ID
-- **Entrée** : id
-- **Sortie** : Student (id, name, email) ou null
-
-### 3. **getAllStudentsRequest** — Récupérer tous les étudiants
-- **Entrée** : (vide)
-- **Sortie** : Liste complète des étudiants
+| Opération | Entrée | Sortie |
+|---|---|---|
+| **addStudentRequest** | name, email | Student (id, name, email) |
+| **getStudentRequest** | id | Student ou vide |
+| **getAllStudentsRequest** | — | Liste des étudiants |
 
 ---
 
-## � Exemples de requêtes SOAP
+## 📨 Exemples de requêtes
 
-L'endpoint SOAP est: **`http://localhost:8080/ws`**
+**Endpoint SOAP :** `http://localhost:8081/ws`  
+**WSDL :** `http://localhost:8081/ws/student.wsdl`
 
 ### ➕ Ajouter un étudiant
 
+**Requête :**
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" 
@@ -133,7 +126,7 @@ L'endpoint SOAP est: **`http://localhost:8080/ws`**
 </SOAP-ENV:Envelope>
 ```
 
-**Réponse:**
+**Réponse :**
 ```xml
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Body>
@@ -152,6 +145,7 @@ L'endpoint SOAP est: **`http://localhost:8080/ws`**
 
 ### 🔍 Récupérer un étudiant par ID
 
+**Requête :**
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" 
@@ -164,7 +158,7 @@ L'endpoint SOAP est: **`http://localhost:8080/ws`**
 </SOAP-ENV:Envelope>
 ```
 
-**Réponse:**
+**Réponse :**
 ```xml
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Body>
@@ -183,6 +177,7 @@ L'endpoint SOAP est: **`http://localhost:8080/ws`**
 
 ### 📋 Récupérer tous les étudiants
 
+**Requête :**
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" 
@@ -193,7 +188,7 @@ L'endpoint SOAP est: **`http://localhost:8080/ws`**
 </SOAP-ENV:Envelope>
 ```
 
-**Réponse (Exemple):**
+**Réponse (exemple) :**
 ```xml
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Body>
@@ -208,7 +203,7 @@ L'endpoint SOAP est: **`http://localhost:8080/ws`**
         <ns2:name>Fatima Hassan</ns2:name>
         <ns2:email>fatima.hassan@example.com</ns2:email>
       </ns2:student>
-      <!-- ... 3 autres étudiants ... -->
+      <!-- ... autres étudiants ... -->
     </ns2:getAllStudentsResponse>
   </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
@@ -218,7 +213,7 @@ L'endpoint SOAP est: **`http://localhost:8080/ws`**
 
 ## 📊 Données initiales
 
-Au démarrage, **5 étudiants** sont automatiquement chargés:
+Au démarrage, **5 étudiants** sont chargés automatiquement :
 
 | ID | Nom | Email |
 |---|---|---|
@@ -228,77 +223,58 @@ Au démarrage, **5 étudiants** sont automatiquement chargés:
 | 4 | Leila Mansour | leila.mansour@example.com |
 | 5 | Omar Saada | omar.saada@example.com |
 
-**Localisation:** `src/main/java/com/example/demo/init/DataInitializer.java`
-
----
-
-## 🌐 Accès au WSDL
-
-L'API SOAP est décrite par un WSDL accessible à:
-
-**URL:** `http://localhost:8080/ws/student.wsdl`
-
-### Utiliser avec Wizler / Postman / SoapUI
-
-1. Lancez l'application
-2. Ouvrez votre client SOAP (Wizler, Postman, SoapUI, etc.)
-3. URL: `http://localhost:8080/ws`
-4. Collez une requête SOAP depuis les exemples ci-dessus
-5. Cliquez sur **Go/Send**
-
----
-
-## 📝 Notes importantes
-
-- **Noms des éléments SOAP:** Tous les éléments sont en **minuscules** 
-  - ✅ `getAllStudentsRequest` 
-  - ✅ `getStudentRequest`
-  - ✅ `addStudentRequest`
-  
-- **Namespace:** `http://kholty.com/student`
-- **Port:** `8080`
-- **Endpoint:** `http://localhost:8080/ws`
-- **Stockage:** En mémoire (données perdues au redémarrage)
+**Fichier :** `src/main/java/com/example/demo/init/DataInitializer.java`
 
 ---
 
 ## 🔧 Configuration
 
-### Modifier le port par défaut
-Éditez `src/main/resources/application.properties`:
+### Modifier le port
+
+Éditez `src/main/resources/application.properties` :
+
 ```properties
-server.port=8080
+server.port=8081
 ```
 
 ### Ajouter des étudiants au démarrage
-Éditez `src/main/java/com/example/demo/init/DataInitializer.java`:
-```java
-studentRepository.ajouter("Votre Nom", "email@example.com");
-```
+
+Éditez `src/main/java/com/example/demo/init/DataInitializer.java`
 
 ---
 
-## 📚 Ressources
+## 🌐 Accès au WSDL
 
-- [WSDL](http://localhost:8080/ws/student.wsdl) — Définition du service
-- Schéma XSD — `src/main/resources/student.xsd`
-- Configuration SOAP — `src/main/java/com/example/demo/soap/config/WebServiceConfig.java`
+**URL :** `http://localhost:8081/ws/student.wsdl`
 
----
+### Utiliser avec un client SOAP
 
-## 🎯 Utilisation typique
+Outils recommandés : Postman, SoapUI, Wizler
 
-```bash
-# Terminal 1 - Démarrer l'application
-cd Web_service_SOAP-SOAP
-.\mvnw.cmd spring-boot:run
-
-# Terminal 2 - Tester avec curl (exemple)
-curl -X POST http://localhost:8080/ws \
-  -H "Content-Type: application/soap+xml" \
-  -d @request.xml
-```
+1. Lancez l'application avec `spring-boot:run`
+2. Ouvrez votre client SOAP
+3. Cible : `http://localhost:8081/ws`
+4. Collez une requête depuis les exemples ci-dessus
+5. Envoyez
 
 ---
 
-**Développé avec ❤️ par Kholty**
+## 📝 Référence rapide
+
+| Concept | Valeur |
+|---|---|
+| **Endpoint** | `http://localhost:8081/ws` |
+| **WSDL** | `http://localhost:8081/ws/student.wsdl` |
+| **Namespace** | `http://kholty.com/student` |
+| **Port** | `8081` |
+| **Base données** | MySQL |
+
+---
+
+## 📚 Fichiers clés
+
+- `src/main/java/com/example/demo/WebServiceApplication.java` — Point d'entrée
+- `src/main/java/com/example/demo/web/services/soap/StudentEndpoint.java` — Opérations SOAP
+- `src/main/java/com/example/demo/model/Student.java` — Modèle données
+- `src/main/resources/student.xsd` — Schéma XML
+- `src/main/java/com/example/demo/web/services/soap/config/WebServiceConfig.java` — Configuration WSDL
